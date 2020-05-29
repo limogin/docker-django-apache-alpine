@@ -1,0 +1,48 @@
+py_apache:
+  # restart: always
+  image: limogin/django-apache-alpine
+  container_name: py.php.alpine
+  ports:
+    - "80:80"
+    - "443:443"
+    - "2202:22"
+    - "21:21"
+    - "10090-10100:10090-10100"
+  volumes:
+    - "./data/app:/var/www/html/:rw"
+    - "./data/conf:/etc/data.conf/:rw"
+    - "./data/log:/etc/data.log/:rw"
+    - "./data/backup:/var/backup/:rw"
+  cap_add:
+    - NET_ADMIN
+    - NET_RAW
+  environment:
+    DOCKERENV: dev
+    APACHE_RUN_USER:     mark
+    APACHE_RUN_GROUP:    mark
+    SITE:                sample.site.com
+    SITE1:               sample.site.com
+    CRONTAB_DAILY:       /usr/bin/php /var/www/html/sample.site.com/tasks/backup.php
+    CRONTAB_MONTH:       /usr/local/bin/certbot-auto renew --dry-run
+    OPENSSH:             "yes"
+    SSH_PASSWORD:        "mypass"
+    VSFTPD:              "yes"
+    FTPPASS1:            "pass1"
+  links:
+    - py_db
+
+## another container, mysql, etc ..
+py_db:
+  image: mariadb:latest
+  # image: mysql:latest
+  container_name: ts_db
+  # restart: always
+  # ports:
+  # - "3307:3306"
+  volumes:
+    - "./data/db/:/var/lib/mysql:rw"
+  environment:
+    MYSQL_ROOT_PASSWORD: rootpass
+    MYSQL_DATABASE: ts_limogin
+    MYSQL_USER: ts_limogin
+    MYSQL_PASSWORD: dbpass
