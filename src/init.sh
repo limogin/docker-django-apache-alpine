@@ -48,14 +48,14 @@ sed -ri -e "s/#LoadModule rewrite/LoadModule rewrite/" /etc/apache2/httpd.conf
 sed -ri -e "s/#LoadModule deflate_module/LoadModule deflate_module/" /etc/apache2/httpd.conf
 
 # Setup basic php.ini
-sed -ri -e "s/upload_max_filesize =.*/upload_max_filesize = 256M/" /etc/php7/php.ini
+sed -ri -e "s/upload_max_filesize =.*/upload_max_filesize = 1024M/" /etc/php7/php.ini
 sed -ri -e "s/short_open_tag =.*/short_open_tag = On/" /etc/php7/php.ini
-sed -ri -e "s/memory_limit =.*/memory_limit = 1024M/" /etc/php7/php.ini
-sed -ri -e "s/max_input_time =.*/max_input_time = 120/" /etc/php7/php.ini
+sed -ri -e "s/memory_limit =.*/memory_limit = 2048M/" /etc/php7/php.ini
+sed -ri -e "s/max_input_time =.*/max_input_time = 240/" /etc/php7/php.ini
 sed -ri -e "s/max_input_time =.*/max_input_vars = 10000/" /etc/php7/php.ini
-sed -ri -e "s/post_max_size =.*/post_max_size = 256M/" /etc/php7/php.ini
-sed -ri -e "s/display_errors =.*/display_errors = Off/" /etc/php7/php.ini
-sed -ri -e "s/html_errors =.*/html_errors = Off/" /etc/php7/php.ini
+sed -ri -e "s/post_max_size =.*/post_max_size = 1024M/" /etc/php7/php.ini
+sed -ri -e "s/display_errors =.*/display_errors = On/" /etc/php7/php.ini
+sed -ri -e "s/html_errors =.*/html_errors = On/" /etc/php7/php.ini
 sed -ri -e "s/max_execution_time =.*/max_execution_time = 60/" /etc/php7/php.ini
 
 if [ "$DOCKERENV" == "prod" ]; then
@@ -72,6 +72,9 @@ if [ "$DOCKERENV" == "prod" ]; then
  sed -ri -e "s/SecRequestBodyNoFilesLimit .*/SecRequestBodyNoFilesLimit 131072000/" /etc/modsecurity/modsecurity.conf
  sed -ri -e "s/SecRequestBodyInMemoryLimit .*/SecRequestBodyInMemoryLimit 131072000/" /etc/modsecurity/modsecurity.conf
 
+ sed -ri -e "s/html_errors =.*/html_errors = Off/" /etc/php7/php.ini
+ sed -ri -e "s/display_errors =.*/display_errors = Off/" /etc/php7/php.ini
+ sed -ri -e "s/max_input_time =.*/max_input_time = 60/" /etc/php7/php.ini
 fi
 
 env | grep MYSQL > /etc/environment
@@ -99,6 +102,11 @@ if [ ! -d /var/log/supervisord/ ]; then
  mkdir /var/log/supervisord/
 fi
 
+# fix bug in package php7-redis 
+if [ ! -f /etc/php7/conf.d/20_redis.ini ]; then
+  echo "extension=redis.so" > /etc/php7/conf.d/20_redis.ini
+fi
+
 [ -d /etc/data.conf ] ||  mkdir /etc/data.conf
 
 if [ ! -d /etc/data.conf/ssmtp ]; then
@@ -117,6 +125,14 @@ else
  ln -s /etc/data.conf/apache2 /etc/apache2
 fi
 
+if [ ! -d /etc/data.conf/php7 ]; then
+ mv /etc/php7 /etc/data.conf/php7
+ ln -s /etc/data.conf/php7 /etc/php7
+else
+ mv /etc/php7 /etc/php7.backup
+ ln -s /etc/data.conf/php7 /etc/php7
+fi
+
 if [ ! -d /etc/data.conf/fail2ban ]; then
  cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.conf.backup
  sed -ri -e "s/#ignoreip/ignoreip/" /etc/fail2ban/jail.conf
@@ -126,6 +142,13 @@ if [ ! -d /etc/data.conf/fail2ban ]; then
 else
  mv /etc/fail2ban /etc/fail2ban.backup
  ln -s /etc/data.conf/fail2ban /etc/fail2ban
+fi
+
+if [ "$CRONTAB" ]; then
+ [ -d /var/spool/cron/crontabs/ ] || mkdir /var/spool/cron/crontabs/
+ mv /var/spool/cron/crontabs/root /var/spool/cron/crontabs/root.backup
+ cat $CRONTAB >> /var/spool/cron/crontabs/root
+ # ln -s $CRONTAB /var/spool/cron/crontabs/root
 fi
 
 if [ "$CRONTAB_DAILY" ]; then
@@ -245,4 +268,20 @@ if [ "$VSFTPD" ]; then
   echo "#%PAM-1.0
 auth  required  pam_pwdfile.so  pwdfile=/etc/vsftpd/ftpd.passwd
 account   required  pam_permit.so" > /etc/pam.d/vsftpd
+fi
+
+# php debug
+if [ "$DOCKERENV" != "prod" ]; then
+ pecl install xdebug
+ echo "zend_extension=xdebug.so
+ xdebug.profiler_enable=1
+ xdebug.profiler_output_dir=/tmp/xdebug
+ xdebug.remote_enable=1
+ xdebug.remote_connect_back=1
+ xdebug.remote_port=9000
+ xdebug.remote_host=127.0.0.1
+ xdebug.remote_handler=dbgp
+ xdebug.remote_mode=req
+ xdebug.remote_autostart=true " > /etc/php7/conf.d/00_xdebug.ini
+ mkdir -p /tmp/xdebug
 fi
