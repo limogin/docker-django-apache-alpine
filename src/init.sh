@@ -48,9 +48,9 @@ sed -ri -e "s/#LoadModule rewrite/LoadModule rewrite/" /etc/apache2/httpd.conf
 sed -ri -e "s/#LoadModule deflate_module/LoadModule deflate_module/" /etc/apache2/httpd.conf
 
 # Setup basic php.ini
-sed -ri -e "s/upload_max_filesize =.*/upload_max_filesize = 1024M/" /etc/php7/php.ini
+sed -ri -e "s/upload_max_filesize =.*/upload_max_filesize = 2048M/" /etc/php7/php.ini
 sed -ri -e "s/short_open_tag =.*/short_open_tag = On/" /etc/php7/php.ini
-sed -ri -e "s/memory_limit =.*/memory_limit = 2048M/" /etc/php7/php.ini
+sed -ri -e "s/memory_limit =.*/memory_limit = 4096M/" /etc/php7/php.ini
 sed -ri -e "s/max_input_time =.*/max_input_time = 240/" /etc/php7/php.ini
 sed -ri -e "s/max_input_time =.*/max_input_vars = 10000/" /etc/php7/php.ini
 sed -ri -e "s/post_max_size =.*/post_max_size = 1024M/" /etc/php7/php.ini
@@ -102,12 +102,20 @@ if [ ! -d /var/log/supervisord/ ]; then
  mkdir /var/log/supervisord/
 fi
 
-# fix bug in package php7-redis 
+# fix bug in package php7-redis
 if [ ! -f /etc/php7/conf.d/20_redis.ini ]; then
   echo "extension=redis.so" > /etc/php7/conf.d/20_redis.ini
 fi
 
 [ -d /etc/data.conf ] ||  mkdir /etc/data.conf
+
+if [ ! -d /etc/data.conf/logrotate.d ]; then
+ mv /etc/logrotate.d /etc/data.conf/logrotate.d
+ ln -s /etc/data.conf/logrotate.d /etc/logrotate.d
+else
+ mv /etc/logrotate.d /etc/logrotate.d.backup
+ ln -s /etc/data.conf/logrotate.d /etc/logrotate.d
+fi
 
 if [ ! -d /etc/data.conf/ssmtp ]; then
  mv /etc/ssmtp /etc/data.conf/ssmtp
@@ -285,3 +293,13 @@ if [ "$DOCKERENV" != "prod" ]; then
  xdebug.remote_autostart=true " > /etc/php7/conf.d/00_xdebug.ini
  mkdir -p /tmp/xdebug
 fi
+
+# geos
+cd /usr/local/src
+git clone https://github.com/libgeos/php-geos
+cd php-geos
+./configure
+make
+make install
+echo "extension=geos" > /etc/php7/conf.d/00_geos.ini
+rm -rf /usr/local/src/php-geos

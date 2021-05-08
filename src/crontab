@@ -1,4 +1,4 @@
 # Sample background tasks
-# 0 23 * * 7 /usr/bin/php /var/www/html/SERVERNAME/tasks/backup.php
+# 0 23 * * * /usr/bin/php /var/www/html/SERVERNAME/tasks/backup.php
 # 10 * * * * /usr/bin/php /var/www/html/SERVERNAME/tasks/goaccess.php
-# 0 0 0 1 * /usr/local/bin/certbot-auto renew --dry-run
+# 0 0 1 * * /usr/bin/certbot renew --dry-run

@@ -13,19 +13,19 @@ RUN apk update && apk upgrade && \
 
 # php part
 RUN apk update && apk add \
-        php php-bz2 php-json php-common php-fpm php-cgi php-apache2 php-dom \
-        php-apache2 php-tokenizer php-pdo php-sqlite3 \
-        php-imap php-ctype php-bcmath php-calendar php-sockets php-simplexml php-ftp \
-        php-mbstring php-openssl php-gd php-curl php-pdo php-posix php-xmlrpc php-xmlreader php-fileinfo \
-        php-pear php-tokenizer php-pdo php-xsl php-mysqlnd \
-        php-opcache php-gd php-gettext php-json php-iconv php-imap php-pgsql \
-        php-apache2 php-ctype php-bcmath php-calendar php-dom php-sockets \
-        php-ftp php-bz2 php-simplexml composer php-shmop php-fpm php-soap \
-        php-intl php-json php-gd php-curl php7-memcached php7-imagick php7-mcrypt php-zlib \
-        php-pdo_mysql php-mysqli php-mysqlnd php-zip php-xml php-xmlwriter php-xmlrpc php-xmlreader php-simplexml \
-        php-posix sudo php-pcntl php-fileinfo php-cli php7-pecl-yaml php7-dev php7-memcached php7-redis \
-        php7-sqlite3 \
-        composer
+    php php-bz2 php-json php-common php-fpm php-cgi php-apache2 php-dom \
+    php-apache2 php-tokenizer php-pdo php-sqlite3 \
+    php-imap php-ctype php-bcmath php-calendar php-sockets php-simplexml php-ftp \
+    php-mbstring php-openssl php-gd php-curl php-pdo php-posix php-xmlrpc php-xmlreader php-fileinfo \
+    php-pear php-tokenizer php-pdo php-xsl php-mysqlnd \
+    php-opcache php-gd php-gettext php-json php-iconv php-imap php-pgsql \
+    php-apache2 php-ctype php-bcmath php-calendar php-dom php-sockets \
+    php-ftp php-bz2 php-simplexml composer php-shmop php-fpm php-soap \
+    php-intl php-json php-gd php-curl php7-memcached php7-imagick php7-mcrypt php-zlib \
+    php-pdo_mysql php-mysqli php-mysqlnd php-zip php-xml php-xmlwriter php-xmlrpc php-xmlreader php-simplexml \
+    php-posix sudo php-pcntl php-fileinfo php-cli php7-pecl-yaml php7-dev php7-memcached php7-redis \
+    php7-sqlite3 \
+    composer
 
 ADD ./src/fail2ban-wrapper.sh /usr/local/bin/fail2ban-wrapper.sh
 ADD ./src/supervisord.conf /etc/supervisor/supervisord.conf
@@ -43,10 +43,8 @@ RUN pip install supervisor && \
 # python part
 # https://www.digitalocean.com/community/tutorials/how-to-serve-django-applications-with-apache-and-mod_wsgi-on-ubuntu-14-04
 RUN apk add python3 python3-dev apache2-mod-wsgi apache2-mod-wsgi-doc apache2-dev cython
-RUN pip3 install --upgrade pip
-# RUN pip3 install django plotly pandas TwitterAPI PyMySQL sqlalchemy mod_wsgi mod_wsgi-httpd virtualenv
-# RUN pip3 install django virtualenv
 RUN apk add py3-django py3-virtualenv py3-twitter py3-mysqlclient py3-sqlalchemy apache2-mod-wsgi
+RUN pip3 install --upgrade pip
 
 # Alpine SDK
 RUN apk add alpine-sdk build-base autoconf automake libtool libexttextcat libexttextcat-dev pkgconfig libtool m4
@@ -56,7 +54,6 @@ RUN apk add nodejs npm
 
 # PDF manipulation part
 RUN apk add wkhtmltopdf poppler-utils libxml2 libxslt libxml2-dev libxslt-dev xvfb xvfb-run docker
-# ADD https://github.com/pdf2htmlEX/pdf2htmlEX/releases/download/continuous/pdf2htmlEX-0.18.8.rc1-master-20200630-alpine-3.12.0-x86_64.tar.gz /usr/local/src/pdf2htmlex.tar.gz
 ADD https://github.com/pdf2htmlEX/pdf2htmlEX/releases/download/v0.18.8.rc1/pdf2htmlEX-0.18.8.rc1-master-20200630-alpine-3.12.0-x86_64.tar.gz /usr/local/src/pdf2htmlex.tar.gz
 RUN cd / && tar -xzvf /usr/local/src/pdf2htmlex.tar.gz
 
@@ -80,13 +77,13 @@ COPY ./src/vsftpd/v1.0.tar.gz /usr/local/src/v1.0.tar.gz
 # RUN cabal install pandoc --global --prefix=/usr/local/
 ## END PANDOC package
 
+# GEOIP
+RUN apk add geoip geoip-dev geos geos-dev
+RUN pecl install geoip-beta
+RUN echo 'extension=geoip' > /etc/php7/conf.d/00_geoip.ini
+
+
 RUN cd /usr/local/src && tar -xzvf /usr/local/src/v1.0.tar.gz && cd /usr/local/src/libpam-pwdfile-1.0; \
     make && make install; \
     rm -rf /usr/local/src/pam_pwdfile-1.0
-
-# COPY ./src/vsftpd/v1.0.tar.gz /usr/local/src/v1.0.tar.gz
-# RUN cd /usr/local/src && tar -xzvf /usr/local/src/v1.0.tar.gz && cd /usr/local/src/libpam-pwdfile-1.0; \
-#    make && make install; \
-#    rm -rf /usr/local/src/pam_pwdfile-1.0
-
 CMD ["/usr/local/bin/run.sh"]
